@@ -4,13 +4,8 @@ data class ParsedPressure(val systolic:Int?=null,val diastolic:Int?=null,val pul
 
 class BloodPressureParser {
     fun parse(text:String):ParsedPressure {
-        fun labeled(vararg labels:String):Int? { val names=labels.joinToString("|"){Regex.escape(it)};return Regex("(?i)(?:$names)\\s*[:=-]?\\s*(\\d{2,3})").find(text)?.groupValues?.get(1)?.toIntOrNull() }
-        val sys=labeled("SYS","SYSTOLIC","СИСТ")
-        val dia=labeled("DIA","DIASTOLIC","ДИА")
-        val pulse=labeled("PUL","PULSE","ПУЛЬС")
-        if(sys!=null||dia!=null||pulse!=null)return ParsedPressure(sys,dia,pulse)
-        val fraction=Regex("(?<!\\d)(\\d{2,3})\\s*[/\\\\]\\s*(\\d{2,3})(?!\\d)").find(text)
-        if(fraction!=null)return ParsedPressure(fraction.groupValues[1].toIntOrNull(),fraction.groupValues[2].toIntOrNull(),null)
-        return ParsedPressure()
+        if(Regex("(?<!\\d)\\d{4}(?!\\d)").containsMatchIn(text))return ParsedPressure()
+        val values=Regex("(?<!\\d)\\d{2,3}(?!\\d)").findAll(text).mapNotNull{it.value.toIntOrNull()}.take(3).toList()
+        return ParsedPressure(values.getOrNull(0),values.getOrNull(1),values.getOrNull(2))
     }
 }

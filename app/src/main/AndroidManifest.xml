@@ -7,7 +7,7 @@
         android:name=".StateTrackerApplication"
         android:allowBackup="false"
         android:fullBackupContent="false"
-        android:icon="@drawable/ic_launcher"
+        android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:theme="@style/Theme.StateTracker">
         <activity android:name=".MainActivity" android:exported="true">

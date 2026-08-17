@@ -36,10 +36,13 @@ class CheckInRepository(private val db:AppDatabase, private val clock:Clock=Cloc
 
 class PressureRepository(private val dao:AppDao,private val clock:Clock=Clock.systemDefaultZone()){
     fun observeAll()=dao.observePressure()
-    suspend fun save(systolic:Int?,diastolic:Int?,pulse:Int?,measuredAt:Instant,source:PressureSource,checkinId:String?=null){
+    suspend fun find(id:String)=dao.pressureById(id)
+    suspend fun save(id:String?=null,systolic:Int?,diastolic:Int?,pulse:Int?,measuredAt:Instant,source:PressureSource,checkinId:String?=null){
         require(systolic!=null&&systolic>0&&diastolic!=null&&diastolic>0){"Заполните SYS и DIA положительными числами"}
         require(pulse==null||pulse>0){"Пульс должен быть положительным числом"}
-        dao.insertPressure(BloodPressureMeasurementEntity(UUID.randomUUID().toString(),measuredAt.toEpochMilli(),clock.millis(),systolic=systolic,diastolic=diastolic,pulse=pulse,source=source,checkinId=checkinId))
+        val existing=id?.let{dao.pressureById(it)}
+        if(existing==null)dao.insertPressure(BloodPressureMeasurementEntity(UUID.randomUUID().toString(),measuredAt.toEpochMilli(),clock.millis(),systolic=systolic,diastolic=diastolic,pulse=pulse,source=source,checkinId=checkinId))
+        else dao.updatePressure(existing.copy(systolic=systolic,diastolic=diastolic,pulse=pulse,source=source,updatedAt=clock.millis()))
     }
     suspend fun delete(id:String)=dao.deletePressure(id)
 }

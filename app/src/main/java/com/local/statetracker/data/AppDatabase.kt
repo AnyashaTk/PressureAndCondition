@@ -22,7 +22,9 @@ import kotlinx.coroutines.flow.Flow
     @Query("DELETE FROM checkins WHERE id=:id") suspend fun deleteCheckIn(id:String)
     @Query("SELECT * FROM blood_pressure ORDER BY measuredAt") fun observePressure():Flow<List<BloodPressureMeasurementEntity>>
     @Query("SELECT * FROM blood_pressure ORDER BY measuredAt") suspend fun pressure():List<BloodPressureMeasurementEntity>
+    @Query("SELECT * FROM blood_pressure WHERE id=:id LIMIT 1") suspend fun pressureById(id:String):BloodPressureMeasurementEntity?
     @Insert suspend fun insertPressure(item:BloodPressureMeasurementEntity)
+    @Update suspend fun updatePressure(item:BloodPressureMeasurementEntity)
     @Query("DELETE FROM blood_pressure WHERE id=:id") suspend fun deletePressure(id:String)
     @Query("SELECT * FROM cycle_events ORDER BY date") fun observeCycles():Flow<List<CycleEventEntity>>
     @Query("SELECT * FROM cycle_events ORDER BY date") suspend fun cycles():List<CycleEventEntity>

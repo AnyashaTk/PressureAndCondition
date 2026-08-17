@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Состояние</string>
+    <string name="app_name">Pressure and Condition</string>
     <string name="notification_channel">Напоминания о состоянии</string>
     <string name="notification_title">Как ты сейчас?</string>
     <string name="notification_day">Заполни дневное состояние</string>

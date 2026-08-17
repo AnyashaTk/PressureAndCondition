@@ -19,3 +19,23 @@ Decision: для MVP рисовать простые line charts штатным 
 Reason: меньше зависимостей и полностью прозрачная шкала без неявной нормализации.
 
 Alternatives considered: сторонние chart libraries.
+
+## 2026-08-17 — расширение Canvas-графиков для CR-001
+
+Context: существующий MVP использовал штатный Compose Canvas без сторонней библиотеки.
+
+Decision: сохранить renderer и добавить axes, legend, tap marker, раздельные series и выделение min/max поверх Canvas.
+
+Reason: требуемые возможности реализуются без замены архитектуры или новой зависимости.
+
+Alternatives considered: миграция на стороннюю chart library, отклонена как ненужная для текущего объёма.
+
+## 2026-08-17 — тема без изменения Room
+
+Context: CR-001 требует persistent theme override и сохранения пользовательских данных.
+
+Decision: хранить SYSTEM/LIGHT/DARK в Preferences DataStore с default SYSTEM.
+
+Reason: настройка не является историческим наблюдением и не требует миграции Room.
+
+Alternatives considered: поле в Room, отклонено как несоответствующее назначению данных.

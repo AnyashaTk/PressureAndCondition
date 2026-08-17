@@ -5,6 +5,7 @@ import java.time.temporal.WeekFields
 import java.util.Locale
 
 enum class Grouping { RAW, DAY, WEEK, MONTH }
+enum class PressureAggregation(val ru:String){MEAN("Среднее"),MIN("Минимум"),MAX("Максимум");fun apply(values:List<Float>)=when(this){MEAN->values.average().toFloat();MIN->values.min();MAX->values.max()}}
 data class AnalyticsPoint(val bucket:String,val slot:CheckInSlot,val value:Double)
 
 object AnalyticsAggregator {
