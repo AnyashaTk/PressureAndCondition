@@ -1,0 +1,12 @@
+package com.local.statetracker.ocr
+
+import org.junit.Assert.*
+import org.junit.Test
+
+class BloodPressureParserTest {
+    private val parser=BloodPressureParser()
+    @Test fun labeledValues(){assertEquals(ParsedPressure(118,76,68),parser.parse("SYS 118 DIA 76 PULSE 68"))}
+    @Test fun pulseMayBeMissing(){assertEquals(ParsedPressure(120,80,null),parser.parse("120/80"))}
+    @Test fun unrelatedNumbersAreNotGuessed(){assertEquals(ParsedPressure(),parser.parse("2026 08 17 14:03"))}
+    @Test fun arbitraryTextNeverCrashes(){assertEquals(ParsedPressure(),parser.parse("!? пусто 🫀"))}
+}

@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Состояние</string>
+    <string name="notification_channel">Напоминания о состоянии</string>
+    <string name="notification_title">Как ты сейчас?</string>
+    <string name="notification_day">Заполни дневное состояние</string>
+    <string name="notification_evening">Заполни вечернее состояние</string>
+</resources>
