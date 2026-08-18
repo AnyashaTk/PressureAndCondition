@@ -1,6 +1,7 @@
 package com.local.statetracker
 
 import android.Manifest
+import android.app.TimePickerDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -43,6 +44,7 @@ import com.local.statetracker.export.CsvExporter
 import com.local.statetracker.health.AndroidHealthConnectDataSource
 import com.local.statetracker.notifications.EXTRA_DATE
 import com.local.statetracker.notifications.EXTRA_SLOT
+import com.local.statetracker.notifications.ReminderTime
 import com.local.statetracker.ocr.BloodPressureParser
 import com.local.statetracker.ocr.OcrDraftMapper
 import com.local.statetracker.ocr.OcrElement
@@ -154,6 +156,8 @@ fun slotName(slot:CheckInSlot)=when(slot){CheckInSlot.DAY->"День";CheckInSlo
 fun formatValue(v:Float,boolean:Boolean,aggregated:Boolean)=if(boolean&&!aggregated)if(v>=.5f)"Да" else "Нет" else if(boolean)"${(v*100).toInt()}%" else if(v%1f==0f)v.toInt().toString() else "%.1f".format(Locale.US,v)
 
 @Composable fun SettingsScreen(vm:MainViewModel){val metrics by vm.metrics.collectAsState();val themeMode by vm.themeMode.collectAsState();val context=LocalContext.current;val scope=rememberCoroutineScope();var exportMessage by remember{mutableStateOf<String?>(null)};var healthMessage by remember{mutableStateOf("")}
+    val scheduler=remember{(context.applicationContext as StateTrackerApplication).container.scheduler};var dayReminder by remember{mutableStateOf(scheduler.reminderTime(CheckInSlot.DAY))};var eveningReminder by remember{mutableStateOf(scheduler.reminderTime(CheckInSlot.EVENING))}
+    fun chooseReminder(slot:CheckInSlot,current:ReminderTime){TimePickerDialog(context,{_,hour,minute->val updated=ReminderTime(hour,minute);scheduler.updateReminderTime(slot,hour,minute);if(slot==CheckInSlot.DAY)dayReminder=updated else eveningReminder=updated},current.hour,current.minute,true).show()}
     val notificationPermission=rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()){}
     val export=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")){uri->if(uri!=null)scope.launch{runCatching{context.contentResolver.openOutputStream(uri)?.use{CsvExporter((context.applicationContext as StateTrackerApplication).container.dao).write(it)}?:error("Не удалось открыть файл")}.onSuccess{exportMessage="Экспорт готов"}.onFailure{exportMessage="Ошибка экспорта: ${it.message}"}}}
     val health=remember{AndroidHealthConnectDataSource(context)}
@@ -162,7 +166,7 @@ fun formatValue(v:Float,boolean:Boolean,aggregated:Boolean)=if(boolean&&!aggrega
         Text("Тема",style=MaterialTheme.typography.titleLarge);ThemeMode.entries.forEach{mode->Row(Modifier.fillMaxWidth().clickable{vm.setTheme(mode)},verticalAlignment=Alignment.CenterVertically){RadioButton(themeMode==mode,{vm.setTheme(mode)});Text(when(mode){ThemeMode.SYSTEM->"Как в системе";ThemeMode.LIGHT->"Светлая";ThemeMode.DARK->"Тёмная"})}}
         HorizontalDivider()
         Text("Метрики",style=MaterialTheme.typography.titleLarge);metrics.forEach{m->Card(Modifier.fillMaxWidth()){Column(Modifier.padding(14.dp)){Row(verticalAlignment=Alignment.CenterVertically){Switch(m.enabled,{vm.updateMetric(m.copy(enabled=it))});Spacer(Modifier.width(8.dp));Text(m.displayName,fontWeight=FontWeight.Medium)};Text("Показывать:");Row{LabeledCheck("День",m.showInDay){vm.updateMetric(m.copy(showInDay=it))};LabeledCheck("Вечер",m.showInEvening){vm.updateMetric(m.copy(showInEvening=it))};LabeledCheck("Доп.",m.showInExtra){vm.updateMetric(m.copy(showInExtra=it))}}}}}
-        HorizontalDivider();Text("Уведомления",style=MaterialTheme.typography.titleLarge);Text("День: около 13:00\nВечер: около 19:00");val allowed=android.os.Build.VERSION.SDK_INT<33||ContextCompat.checkSelfPermission(context,Manifest.permission.POST_NOTIFICATIONS)==PackageManager.PERMISSION_GRANTED;Text(if(allowed)"Системное разрешение: выдано" else "Системное разрешение: не выдано");if(!allowed)Button(onClick={notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)}){Text("Разрешить уведомления")}
+        HorizontalDivider();Text("Уведомления",style=MaterialTheme.typography.titleLarge);Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedButton(onClick={chooseReminder(CheckInSlot.DAY,dayReminder)},modifier=Modifier.weight(1f)){Text("День ${dayReminder.formatted()}")};OutlinedButton(onClick={chooseReminder(CheckInSlot.EVENING,eveningReminder)},modifier=Modifier.weight(1f)){Text("Вечер ${eveningReminder.formatted()}")}};Text("Нажми на время, чтобы изменить его. Будущие уведомления перепланируются автоматически.",style=MaterialTheme.typography.bodySmall);val allowed=android.os.Build.VERSION.SDK_INT<33||ContextCompat.checkSelfPermission(context,Manifest.permission.POST_NOTIFICATIONS)==PackageManager.PERMISSION_GRANTED;Text(if(allowed)"Системное разрешение: выдано" else "Системное разрешение: не выдано");if(!allowed)Button(onClick={notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)}){Text("Разрешить уведомления")}
         HorizontalDivider();Text("Цикл · Health Connect",style=MaterialTheme.typography.titleLarge);val available=health.availability()==HealthConnectClient.SDK_AVAILABLE;Text(if(available)"Доступен${if(healthMessage.isNotBlank())" · $healthMessage" else ""}" else "Недоступен");Button(onClick={if(available)healthPermission.launch(health.permissions)},enabled=available){Text("Подключить")};OutlinedButton(onClick={scope.launch{runCatching{health.read()}.onSuccess{records->val c=(context.applicationContext as StateTrackerApplication).container;records.forEach{c.cycles.import(it.start.atZone(ZoneId.systemDefault()).toLocalDate(),it.id)};healthMessage="Синхронизировано: ${records.size}"}.onFailure{healthMessage="Ошибка: ${it.message}"}}},enabled=available){Text("Синхронизировать")}
         HorizontalDivider();Text("Данные",style=MaterialTheme.typography.titleLarge);Button(onClick={export.launch("state-tracker-export-${LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmm"))}.zip")},Modifier.fillMaxWidth()){Text("Экспорт CSV")};exportMessage?.let{Text(it,color=MaterialTheme.colorScheme.primary)};Text("Данные хранятся только на этом устройстве. Удаление приложения удалит локальные данные. Для сохранения истории используй экспорт CSV.",style=MaterialTheme.typography.bodySmall)
     }}

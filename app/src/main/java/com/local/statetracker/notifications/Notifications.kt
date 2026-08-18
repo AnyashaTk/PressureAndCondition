@@ -18,9 +18,12 @@ const val EXTRA_DATE="target_date";const val EXTRA_SLOT="slot";private const val
 
 class NotificationScheduler(private val context:Context){
     private val alarms=context.getSystemService(AlarmManager::class.java)
-    fun scheduleAll(){schedule(CheckInSlot.DAY,13);schedule(CheckInSlot.EVENING,19)}
-    private fun schedule(slot:CheckInSlot,hour:Int){
-        val next=ReminderPlanner.next(ZonedDateTime.now(),hour)
+    private val preferences=context.getSharedPreferences("reminder-times",Context.MODE_PRIVATE)
+    fun reminderTime(slot:CheckInSlot)=ReminderTime(preferences.getInt("${slot.name}_hour",if(slot==CheckInSlot.DAY)13 else 19),preferences.getInt("${slot.name}_minute",0))
+    fun updateReminderTime(slot:CheckInSlot,hour:Int,minute:Int){preferences.edit().putInt("${slot.name}_hour",hour).putInt("${slot.name}_minute",minute).apply();scheduleAll()}
+    fun scheduleAll(){schedule(CheckInSlot.DAY,reminderTime(CheckInSlot.DAY));schedule(CheckInSlot.EVENING,reminderTime(CheckInSlot.EVENING))}
+    private fun schedule(slot:CheckInSlot,time:ReminderTime){
+        val next=ReminderPlanner.next(ZonedDateTime.now(),time.hour,time.minute)
         scheduleAt(slot,next.toLocalDate(),next.toInstant().toEpochMilli(),slot.ordinal)
     }
     fun scheduleDebug(slot:CheckInSlot,date:LocalDate,triggerAtMillis:Long)=scheduleAt(slot,date,triggerAtMillis,100+slot.ordinal)
@@ -56,5 +59,6 @@ class CheckInAlarmReceiver:BroadcastReceiver(){
 class RescheduleReceiver:BroadcastReceiver(){override fun onReceive(context:Context,intent:Intent){(context.applicationContext as StateTrackerApplication).container.scheduler.scheduleAll()}}
 fun notificationId(date:LocalDate,slot:CheckInSlot)=31*date.toEpochDay().hashCode()+slot.ordinal
 
-object ReminderPlanner { fun next(now:ZonedDateTime,hour:Int):ZonedDateTime=now.toLocalDate().atTime(hour,0).atZone(now.zone).let{if(it.isAfter(now))it else it.plusDays(1)} }
+object ReminderPlanner { fun next(now:ZonedDateTime,hour:Int,minute:Int=0):ZonedDateTime=now.toLocalDate().atTime(hour,minute).atZone(now.zone).let{if(it.isAfter(now))it else it.plusDays(1)} }
 object ReminderDecision { fun shouldPost(slotFilled:Boolean)=!slotFilled }
+data class ReminderTime(val hour:Int,val minute:Int){fun formatted()="%02d:%02d".format(hour,minute)}
