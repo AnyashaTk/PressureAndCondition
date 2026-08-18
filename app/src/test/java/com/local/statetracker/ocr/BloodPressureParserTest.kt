@@ -14,4 +14,5 @@ class BloodPressureParserTest {
     @Test fun oneValueLeavesOthersMissing(){assertEquals(ParsedPressure(118,null,null),parser.parse("118"))}
     @Test fun cameraAndGalleryOcrPrefillEditableDraft(){assertEquals(PressureDraft("118","76","68"),OcrDraftMapper.prefill(parser.parse("118 76 68")))}
     @Test fun cameraCancelPreservesExistingFields(){val current=PressureDraft("120","80","70");assertSame(current,OcrDraftMapper.cameraCancelled(current))}
+    @Test fun structuredElementsMapNumberToNearestDisplayLabel(){val elements=listOf(OcrElement("SYS",OcrBounds(900,100,980,140)),OcrElement("DIA",OcrBounds(900,300,980,340)),OcrElement("PUL",OcrBounds(900,500,980,540)),OcrElement("78",OcrBounds(700,490,820,550)));assertEquals(ParsedPressure(pulse=78),parser.parse("SYS DIA PUL 78",elements))}
 }

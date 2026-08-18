@@ -20,10 +20,15 @@ class NotificationScheduler(private val context:Context){
     private val alarms=context.getSystemService(AlarmManager::class.java)
     fun scheduleAll(){schedule(CheckInSlot.DAY,13);schedule(CheckInSlot.EVENING,19)}
     private fun schedule(slot:CheckInSlot,hour:Int){
-        val now=ZonedDateTime.now();var next=now.toLocalDate().atTime(hour,0).atZone(now.zone);if(!next.isAfter(now))next=next.plusDays(1)
-        val intent=Intent(context,CheckInAlarmReceiver::class.java).putExtra(EXTRA_SLOT,slot.name).putExtra(EXTRA_DATE,next.toLocalDate().toString())
-        val pi=PendingIntent.getBroadcast(context,slot.ordinal,intent,PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,next.toInstant().toEpochMilli(),pi)
+        val next=ReminderPlanner.next(ZonedDateTime.now(),hour)
+        scheduleAt(slot,next.toLocalDate(),next.toInstant().toEpochMilli(),slot.ordinal)
+    }
+    fun scheduleDebug(slot:CheckInSlot,date:LocalDate,triggerAtMillis:Long)=scheduleAt(slot,date,triggerAtMillis,100+slot.ordinal)
+    private fun scheduleAt(slot:CheckInSlot,date:LocalDate,triggerAtMillis:Long,requestCode:Int){
+        val intent=Intent(context,CheckInAlarmReceiver::class.java).putExtra(EXTRA_SLOT,slot.name).putExtra(EXTRA_DATE,date.toString())
+        val pi=PendingIntent.getBroadcast(context,requestCode,intent,PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        if(Build.VERSION.SDK_INT<31||alarms.canScheduleExactAlarms())alarms.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,triggerAtMillis,pi)
+        else alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,triggerAtMillis,pi)
     }
     fun cancelNotification(date:LocalDate,slot:CheckInSlot)=NotificationManagerCompat.from(context).cancel(notificationId(date,slot))
 }
@@ -34,7 +39,7 @@ class CheckInAlarmReceiver:BroadcastReceiver(){
             val slot=runCatching{CheckInSlot.valueOf(intent.getStringExtra(EXTRA_SLOT)?:"")}.getOrNull()?:return@launch
             val date=runCatching{LocalDate.parse(intent.getStringExtra(EXTRA_DATE))}.getOrNull()?:return@launch
             val app=context.applicationContext as StateTrackerApplication
-            if(!app.container.checkIns.exists(date,slot))show(context,date,slot)
+            if(ReminderDecision.shouldPost(app.container.checkIns.exists(date,slot)))show(context,date,slot)
             app.container.scheduler.scheduleAll()
         }finally{pending.finish()}}
     }
@@ -50,3 +55,6 @@ class CheckInAlarmReceiver:BroadcastReceiver(){
 }
 class RescheduleReceiver:BroadcastReceiver(){override fun onReceive(context:Context,intent:Intent){(context.applicationContext as StateTrackerApplication).container.scheduler.scheduleAll()}}
 fun notificationId(date:LocalDate,slot:CheckInSlot)=31*date.toEpochDay().hashCode()+slot.ordinal
+
+object ReminderPlanner { fun next(now:ZonedDateTime,hour:Int):ZonedDateTime=now.toLocalDate().atTime(hour,0).atZone(now.zone).let{if(it.isAfter(now))it else it.plusDays(1)} }
+object ReminderDecision { fun shouldPost(slotFilled:Boolean)=!slotFilled }

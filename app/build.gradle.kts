@@ -20,6 +20,7 @@ android {
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
     packaging { resources.excludes += "/META-INF/{AL2.0,LGPL2.1}" }
+    sourceSets.getByName("androidTest").assets.srcDir("src/test/pressure")
 }
 ksp { arg("room.schemaLocation", "$projectDir/schemas") }
 
@@ -43,4 +44,8 @@ dependencies {
     implementation(libs.compose.icons)
     debugImplementation(libs.compose.ui.tooling)
     testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.test.core)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.junit)
+    androidTestImplementation(libs.gms.mlkit.text.chinese)
 }
