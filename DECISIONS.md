@@ -39,3 +39,33 @@ Decision: хранить SYSTEM/LIGHT/DARK в Preferences DataStore с default S
 Reason: настройка не является историческим наблюдением и не требует миграции Room.
 
 Alternatives considered: поле в Room, отклонено как несоответствующее назначению данных.
+
+## 2026-08-17 — единый временной домен Analytics для CR-002
+
+Context: позиция и выбор X в CR-001 частично зависели от имеющихся observations, что не позволяло корректно выбирать пустые периоды.
+
+Decision: ввести общий `TimeBucket` domain для Raw/Day/Week/Month и хранить observations отдельно как marks внутри bucket. Tap сначала выбирает bucket, независимо от hit testing точек.
+
+Reason: missing periods сохраняют место и остаются selectable, а grouping действительно меняет boundaries, labels и interaction semantics.
+
+Alternatives considered: snapping к ближайшей точке и категориальная ось только по данным отклонены как нарушающие CR-002.
+
+## 2026-08-17 — системная камера через temporary FileProvider URI
+
+Context: нужен прямой capture без permanent photo history.
+
+Decision: использовать Activity Result `TakePicture`, cache-файл и существующий FileProvider; camera и gallery сходятся в одну OCR-функцию.
+
+Reason: системная камера не требует custom camera UI, а файл удаляется после OCR, cancel, ошибки или ухода с экрана.
+
+Alternatives considered: CameraX preview отклонён как избыточный; permanent MediaStore image запрещён privacy requirements.
+
+## 2026-08-17 — generic mascot engine
+
+Context: CR-002 переводит mascots из backlog в REQUIRED.
+
+Decision: централизованный `MascotDefinition` описывает idle/walk resources, а общий actor управляет frames, движением, остановками и mirroring.
+
+Reason: набор персонажа можно заменить без изменения Today/business logic; lifecycle coroutine прекращается вместе с экраном или Activity pause.
+
+Alternatives considered: character-specific logic и background service отклонены.

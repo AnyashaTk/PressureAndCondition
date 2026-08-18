@@ -1,6 +1,11 @@
 package com.local.statetracker.ocr
 
 data class ParsedPressure(val systolic:Int?=null,val diastolic:Int?=null,val pulse:Int?=null)
+data class PressureDraft(val systolic:String="",val diastolic:String="",val pulse:String="")
+object OcrDraftMapper{
+    fun prefill(parsed:ParsedPressure)=PressureDraft(parsed.systolic?.toString().orEmpty(),parsed.diastolic?.toString().orEmpty(),parsed.pulse?.toString().orEmpty())
+    fun cameraCancelled(current:PressureDraft)=current
+}
 
 class BloodPressureParser {
     fun parse(text:String):ParsedPressure {

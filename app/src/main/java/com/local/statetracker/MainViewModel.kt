@@ -16,6 +16,7 @@ class MainViewModel(app:Application):AndroidViewModel(app){
     val pressure=c.pressure.observeAll().stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),emptyList())
     val cycles=c.cycles.observeAll().stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),emptyList())
     val themeMode=c.themeSettings.mode.stateIn(viewModelScope,SharingStarted.Eagerly,ThemeMode.SYSTEM)
+    val showCycleOverlay=c.themeSettings.showCycleOverlay.stateIn(viewModelScope,SharingStarted.Eagerly,false)
     private val _message=MutableStateFlow<String?>(null)
     val message:StateFlow<String?> = _message.asStateFlow()
     suspend fun find(id:String)=c.checkIns.find(id)
@@ -27,5 +28,6 @@ class MainViewModel(app:Application):AndroidViewModel(app){
     fun toggleCycle(date:LocalDate,exists:Boolean)=viewModelScope.launch{c.cycles.toggle(date,exists)}
     fun updateMetric(m:MetricDefinitionEntity)=viewModelScope.launch{c.dao.updateMetric(m)}
     fun setTheme(mode:ThemeMode)=viewModelScope.launch{c.themeSettings.set(mode)}
+    fun setCycleOverlay(show:Boolean)=viewModelScope.launch{c.themeSettings.setCycleOverlay(show)}
     fun clearMessage(){_message.value=null}
 }

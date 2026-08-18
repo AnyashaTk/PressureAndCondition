@@ -12,4 +12,6 @@ class BloodPressureParserTest {
     @Test fun threeValuesFollowReadingOrder(){assertEquals(ParsedPressure(118,76,68),parser.parse("118 76 68"))}
     @Test fun twoValuesLeavePulseMissing(){assertEquals(ParsedPressure(118,76,null),parser.parse("118 76"))}
     @Test fun oneValueLeavesOthersMissing(){assertEquals(ParsedPressure(118,null,null),parser.parse("118"))}
+    @Test fun cameraAndGalleryOcrPrefillEditableDraft(){assertEquals(PressureDraft("118","76","68"),OcrDraftMapper.prefill(parser.parse("118 76 68")))}
+    @Test fun cameraCancelPreservesExistingFields(){val current=PressureDraft("120","80","70");assertSame(current,OcrDraftMapper.cameraCancelled(current))}
 }
