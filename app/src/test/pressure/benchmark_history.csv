@@ -1,2 +1,3 @@
 date,git_commit,version,dataset,correct_fields,total_fields,field_accuracy,complete_triplets,usable_sys_dia,notes
 2026-08-18,a173893f1dd4954640c24e406f7393f99eaa9e95,v0.3,pressure-v1,0,15,0.0,0,1,before CR-003; bundled Latin ML Kit plus raw-text first-three-numbers parser
+2026-08-18,ab7efc2bc6d87093f850179e55ef92e4737027ec,,pressure-v1,2,15,13.3,0,0,CR-003 structured element ordering fix; Latin retained after unbundled Chinese A/B produced 0/15
