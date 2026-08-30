@@ -20,6 +20,52 @@ import java.util.concurrent.TimeUnit
 @RunWith(AndroidJUnit4::class)
 class PressureOcrBenchmarkTest {
     @Test
+    fun dumpFullLatinStructureForPressureV1() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val context = instrumentation.targetContext
+        val fixtureAssets = instrumentation.context.assets
+        val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+        val fixtureNames = fixtureAssets.open("test_pressures.csv").bufferedReader().useLines { lines ->
+            lines.drop(1).filter { it.isNotBlank() }.map { it.substringBefore(',').trim() }.take(5).toList()
+        }
+        val dump = StringBuilder()
+        fun emit(message: String) {
+            Log.i(STRUCTURE_TAG, message)
+            dump.appendLine(message)
+        }
+
+        fixtureNames.forEach { fixtureName ->
+            val imageFile = File(context.cacheDir, "structure-$fixtureName")
+            fixtureAssets.open(fixtureName).use { input ->
+                imageFile.outputStream().use(input::copyTo)
+            }
+            val result = Tasks.await(
+                recognizer.process(InputImage.fromFilePath(context, Uri.fromFile(imageFile))),
+                60,
+                TimeUnit.SECONDS,
+            )
+            emit("IMAGE $fixtureName RAW=${result.text.replace("\n", "\\n")}")
+            result.textBlocks.forEachIndexed { blockIndex, block ->
+                emit("IMAGE $fixtureName BLOCK[$blockIndex] text=${block.text.replace("\n", "\\n")} box=${block.boundingBox}")
+                block.lines.forEachIndexed { lineIndex, line ->
+                    emit("IMAGE $fixtureName BLOCK[$blockIndex] LINE[$lineIndex] text=${line.text} box=${line.boundingBox}")
+                    line.elements.forEachIndexed { elementIndex, element ->
+                        emit("IMAGE $fixtureName BLOCK[$blockIndex] LINE[$lineIndex] ELEMENT[$elementIndex] text=${element.text} box=${element.boundingBox} confidence=${element.confidence}")
+                        element.symbols.forEachIndexed { symbolIndex, symbol ->
+                            emit("IMAGE $fixtureName BLOCK[$blockIndex] LINE[$lineIndex] ELEMENT[$elementIndex] SYMBOL[$symbolIndex] text=${symbol.text} box=${symbol.boundingBox} confidence=${symbol.confidence}")
+                        }
+                    }
+                }
+            }
+            emit("IMAGE $fixtureName END blocks=${result.textBlocks.size}")
+            imageFile.delete()
+        }
+        File(context.getExternalFilesDir(null), "pressure-v1-mlkit-structure.txt").writeText(dump.toString())
+        recognizer.close()
+        assertTrue("Verifier did not process every pressure-v1 fixture", fixtureNames.size == 5)
+    }
+
+    @Test
     fun reportProductionBaselineForPressureV1() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext
@@ -90,5 +136,8 @@ class PressureOcrBenchmarkTest {
     private data class Expected(val name: String, val sys: Int, val dia: Int, val pul: Int)
 
 
-    private companion object { const val TAG = "PressureOcrBenchmark" }
+    private companion object {
+        const val TAG = "PressureOcrBenchmark"
+        const val STRUCTURE_TAG = "PressureOcrStructure"
+    }
 }
